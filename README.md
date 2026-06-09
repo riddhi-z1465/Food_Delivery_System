@@ -40,6 +40,126 @@ graph TD
 
 ---
 
+## 🗺️ Production-Grade Microservices Architecture (Zomato-Like)
+
+For production scale, the simple multi-threaded simulation scales up to a robust, layered, event-driven microservices system:
+
+```mermaid
+graph TD
+    %% 1. Client Layer
+    subgraph Client [1. Client Layer]
+        Mobile["📱 Mobile App (iOS/Android)"]
+        Web["💻 Web App"]
+    end
+
+    %% 2. API Gateway Layer
+    subgraph Gateway [2. API Gateway Layer]
+        APIGW["🛡️ API Gateway <br> (Auth, Routing, Rate Limiting, Load Balancing)"]
+    end
+    Client --> APIGW
+
+    %% 3. Microservices Layer
+    subgraph Microservices [3. Microservices Layer]
+        UserSvc["👤 User Service <br> (Auth, Profile, Preferences)"]
+        RestSvc["🍴 Restaurant Service <br> (Details, Menus, Availability)"]
+        SearchSvc["🔍 Search Service <br> (Full-text - Elasticsearch)"]
+        LocSvc["📍 Location Service <br> (GeoHash, PostGIS, Quadtree)"]
+        ReviewSvc["⭐ Review & Rating <br> (Reviews, Aggregation)"]
+        RecSvc["🤖 Recommendation Svc <br> (ML Ranking, Personalize)"]
+        OrderSvc["📦 Order Service <br> (Cart, Checkout, Tracking)"]
+    end
+    APIGW --> UserSvc
+    APIGW --> RestSvc
+    APIGW --> SearchSvc
+    APIGW --> LocSvc
+    APIGW --> ReviewSvc
+    APIGW --> RecSvc
+    APIGW --> OrderSvc
+
+    %% 4. Cache Layer
+    subgraph Cache [5. Cache Layer]
+        Redis[("⚡ Redis Cache <br> (Nearby, Popular, Details, Sessions)")]
+    end
+    RestSvc -.->|Cache Access| Redis
+    LocSvc -.->|Cache Access| Redis
+    OrderSvc -.->|Cache Access| Redis
+
+    %% 5. Data Layer
+    subgraph Data [4. Data Layer]
+        UserDB[("🗄️ User DB <br> PostgreSQL")]
+        RestDB[("🗄️ Restaurant DB <br> SQL/NoSQL")]
+        SearchIdx[("🗄️ Search Index <br> Elasticsearch")]
+        GeoIdx[("🗄️ Geo-Spatial Index <br> PostGIS / Redis GEO")]
+        ReviewDB[("🗄️ Review DB <br> MongoDB")]
+        OrderDB[("🗄️ Order DB <br> SQL")]
+    end
+    UserSvc --> UserDB
+    RestSvc --> RestDB
+    SearchSvc --> SearchIdx
+    LocSvc --> GeoIdx
+    ReviewSvc --> ReviewDB
+    OrderSvc --> OrderDB
+
+    %% 6. Event Streaming Layer
+    subgraph EventStream [6. Event Streaming Layer]
+        Kafka[["⚙️ Apache Kafka / Message Queue <br> (User Activity, Ratings, Restaurant Updates, ML Training)"]]
+    end
+    UserSvc -->|User Activity| Kafka
+    ReviewSvc -->|Ratings & Reviews| Kafka
+    RestSvc -->|Restaurant Status| Kafka
+    OrderSvc -->|Order Events| Kafka
+
+    %% 7. Recommendation System
+    subgraph RecSystem [7. Recommendation System]
+        FeatureStore[("💾 Feature Store <br> User & Restaurant features")]
+        MLModel["🧠 ML Ranking Model <br> (Inference Service)"]
+        PersEngine["⚙️ Personalization Engine <br> (Kafka Consumer)"]
+    end
+    Kafka -->|Consume Events| PersEngine
+    PersEngine --> FeatureStore
+    FeatureStore --> MLModel
+    MLModel --> RecSvc
+
+    %% 8. Media Storage
+    subgraph Media [8. Media Storage]
+        S3[("🪣 Object Storage S3 <br> Restaurant/Menu/Profile images")]
+        CDN["🌐 CDN <br> (Image delivery)"]
+    end
+    RestSvc --> S3
+    S3 --> CDN
+
+    %% 9. External Services
+    subgraph External [9. External Services]
+        Payment["💳 Payment Gateway <br> (Razorpay / Stripe)"]
+        Maps["🗺️ Maps API <br> (Google / Mapbox)"]
+        Notify["🔔 Notifications <br> (SMS / Email / Push)"]
+    end
+    OrderSvc --> Payment
+    LocSvc --> Maps
+    OrderSvc --> Notify
+```
+
+### Architectural Breakdown
+
+1. **Client Layer**: The client application (Mobile/Web) sends API calls and telemetry updates.
+2. **API Gateway Layer**: Manages security, authentication, and balances/routes requests to target microservices.
+3. **Microservices Layer**: Distributed autonomous microservices handling specialized scopes:
+   - **User Service**: Manages accounts, profiles, and cuisine preferences.
+   - **Restaurant Service**: Manages menus, restaurant metadata, and operation times.
+   - **Search Service**: Performs fuzzy-search matches over menus.
+   - **Location Service**: Tracks active delivery rider GPS and handles distance/ETA queries.
+   - **Review Service**: Registers user feedback and tracks rating scores.
+   - **Recommendation Service**: Powers discovery screens with personalized feeds.
+   - **Order Service**: Coordinates order placement, payments, and delivery orchestration.
+4. **Cache Layer**: Redis buffers queries for nearby venues, geo-spatial lists, and active session details.
+5. **Data Layer**: Specialized polyglot storage databases matching individual service needs (e.g. relational PostgreSQL/MySQL, search indexes in Elasticsearch, geo-indices in PostGIS/Redis, and MongoDB for reviews).
+6. **Event Streaming Layer**: Apache Kafka acts as the event-driven backbone, broadcasting high-volume updates (e.g., rider location tracks, order status telemetry).
+7. **Recommendation System**: Aggregates behavioral features into a Feature Store to serve real-time predictions via an ML Ranking model.
+8. **Media Storage**: Uses cloud object storage (e.g., AWS S3) cached close to the user via a Content Delivery Network (CDN) for fast image rendering.
+9. **External Services**: Interfaces with third-party networks for processing payments, rendering map interfaces, and pushing app notifications.
+
+---
+
 ## ⚡ Key Features
 
 * **Visual Teleportation**: Click anywhere on the map to relocate the selected customer. The nearest restaurant recommendations are updated instantly.
