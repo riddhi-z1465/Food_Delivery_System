@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zomato Real-Time Operations Central</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-logo">
+            <span class="logo-icon">🛵</span>
+            <div class="logo-text">
+                <h1>Zomato Live</h1>
+                <p>Operations & Match Dispatch Simulator</p>
+            </div>
+        </div>
+        <div class="header-stats">
+            <div class="stat-pill toggle-pill">
+                <input type="checkbox" id="toggle-auto-move" style="cursor: pointer;">
+                <label for="toggle-auto-move" style="cursor: pointer; font-weight: 600;">🤖 Auto-Move</label>
+            </div>
+            <div class="stat-pill toggle-pill">
+                <input type="checkbox" id="toggle-auto-orders" style="cursor: pointer;">
+                <label for="toggle-auto-orders" style="cursor: pointer; font-weight: 600;">🍕 Auto-Orders</label>
+            </div>
+            <div class="stat-pill">
+                <span class="pill-dot green animate-pulse"></span>
+                <span>Broker: Online</span>
+            </div>
+            <div class="stat-pill">
+                <span class="pill-label">Uptime:</span>
+                <span id="system-uptime">00:00:00</span>
+            </div>
+            <div class="stat-pill">
+                <span class="pill-label">Cuisines Loaded:</span>
+                <span class="accent-color">6 types</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="app-layout">
+        <!-- LEFT COLUMN: Customer Hub (Order & Interaction) -->
+        <section class="app-column left-column" aria-label="Customer Control Center">
+            <div class="column-header">
+                <h2>👤 Customer Hub</h2>
+                <span class="header-subtitle">Interactive Play Area</span>
+            </div>
+            <div class="column-content">
+                <!-- Select Active Customer -->
+                <div class="control-card">
+                    <label for="customer-selector" class="field-label">Select Customer to Control</label>
+                    <div class="select-wrapper">
+                        <select id="customer-selector">
+                            <option value="" disabled selected>Choose a customer...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Customer Details & Order App -->
+                <div id="customer-order-card" class="order-app-card hidden">
+                    <div class="app-user-info">
+                        <div class="user-avatar-circle">🧑‍💻</div>
+                        <div>
+                            <h3 id="app-user-name">Rahul</h3>
+                            <span id="app-user-cuisine" class="badge-cuisine">Indian Preference</span>
+                        </div>
+                    </div>
+                    
+                    <div class="app-section">
+                        <h4 class="section-title">Nearby Matches (Click to Browse Menu)</h4>
+                        <div id="app-restaurant-list" class="app-list">
+                            <!-- Restaurant recommendations dynamically loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Menu and Cart -->
+                    <div id="app-menu-section" class="app-section hidden">
+                        <div class="menu-header">
+                            <h4 class="section-title" id="app-menu-restaurant-name">The Gourmet Hub</h4>
+                            <button id="close-menu-btn" class="btn-text">Back</button>
+                        </div>
+                        <div id="app-menu-list" class="app-list">
+                            <!-- Menu items dynamically loaded -->
+                        </div>
+                        <div class="cart-box">
+                            <div class="cart-summary">
+                                <span>Cart Item: <strong id="cart-item-name">None</strong></span>
+                                <div class="cart-qty-ctrl">
+                                    <button id="cart-dec-btn" class="btn-qty">-</button>
+                                    <span id="cart-qty">1</span>
+                                    <button id="cart-inc-btn" class="btn-qty">+</button>
+                                </div>
+                            </div>
+                            <button id="place-order-btn" class="btn-primary">
+                                Place Simulated Order (&#8377;<span id="cart-total">0.00</span>)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="no-customer-selected" class="empty-state">
+                    <span class="empty-icon">👈</span>
+                    <p>Select a customer above to view their recommendations, browse menus, and place custom orders in the simulator.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CENTER COLUMN: Map & System Control -->
+        <section class="app-column center-column" aria-label="Dispatch Grid">
+            <div class="column-header">
+                <h2>🗺️ Live Location Dispatch Grid</h2>
+                <div class="map-controls">
+                    <button id="add-user-trigger" class="btn-secondary btn-small">+ Add User</button>
+                    <button id="reset-view-btn" class="btn-secondary btn-small">Reset Bounds</button>
+                </div>
+            </div>
+            <div class="column-content map-pane">
+                <div class="canvas-container">
+                    <canvas id="liveMapCanvas"></canvas>
+                    <div class="map-tooltip" id="mapTooltip"></div>
+                    <div class="map-legend">
+                        <div class="legend-item"><span class="legend-dot user-dot"></span><span>Customer (Green)</span></div>
+                        <div class="legend-item"><span class="legend-dot rest-dot"></span><span>Restaurant (Red)</span></div>
+                        <div class="legend-item"><span class="legend-line matching-line"></span><span>Nearest Match</span></div>
+                    </div>
+                </div>
+                
+                <!-- Map Interaction Instructions -->
+                <div class="map-footer-hint">
+                    <p>💡 <strong>Map Actions:</strong> Click anywhere on the map grid to teleport the currently selected customer immediately. Their matches will recalculate instantly.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Order Pipelines & Message Logs -->
+        <section class="app-column right-column" aria-label="Operations Pipeline">
+            <!-- Top Half: Order Pipelines -->
+            <div class="pipeline-section">
+                <div class="column-header">
+                    <h2>📦 Live Order Pipelines</h2>
+                    <span class="header-badge" id="active-orders-badge">0 Active</span>
+                </div>
+                <div class="pipeline-board">
+                    <div class="pipeline-col">
+                        <div class="pipeline-col-title">Pending</div>
+                        <div class="pipeline-col-cards" id="pipe-pending"></div>
+                    </div>
+                    <div class="pipeline-col">
+                        <div class="pipeline-col-title">Kitchen</div>
+                        <div class="pipeline-col-cards" id="pipe-preparing"></div>
+                    </div>
+                    <div class="pipeline-col">
+                        <div class="pipeline-col-title">Delivery</div>
+                        <div class="pipeline-col-cards" id="pipe-delivery"></div>
+                    </div>
+                    <div class="pipeline-col">
+                        <div class="pipeline-col-title">Delivered</div>
+                        <div class="pipeline-col-cards" id="pipe-delivered"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Half: Log Terminal -->
+            <div class="log-section">
+                <div class="column-header">
+                    <h2>🖥️ Message Broker Event Stream</h2>
+                    <button id="clear-logs-btn" class="btn-text">Clear</button>
+                </div>
+                <div class="log-console" id="log-console-stream">
+                    <!-- Events stream -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL DIALOG: ADD CUSTOM USER -->
+    <div id="add-user-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Create New User</h3>
+                <button id="close-modal-btn" class="btn-close">&times;</button>
+            </div>
+            <form id="add-user-form">
+                <div class="form-group">
+                    <label for="new-user-name" class="field-label">User Name</label>
+                    <input type="text" id="new-user-name" placeholder="Enter name (e.g., Rohan)" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-user-cuisine" class="field-label">Preferred Cuisine</label>
+                    <div class="select-wrapper">
+                        <select id="new-user-cuisine">
+                            <option value="Indian">Indian</option>
+                            <option value="Italian">Italian</option>
+                            <option value="Japanese">Japanese</option>
+                            <option value="Chinese">Chinese</option>
+                            <option value="American">American</option>
+                            <option value="Cafe">Cafe</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-add-btn" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Deploy User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
