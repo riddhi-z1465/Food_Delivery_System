@@ -6,23 +6,6 @@ A high-performance, multi-threaded simulation mimicking real-time food delivery 
 
 ## 🏗️ Architecture Overview
 
-The system is split into a multi-threaded Python backend and a lightweight, interactive frontend dashboard:
-
-```mermaid
-graph TD
-    subgraph Python Backend
-        A[Threading HTTPServer] -->|State Snapshot / API Posts| B(Global State - Thread Safe)
-        C[User Simulator Thread] -->|Auto-Move / Auto-Orders| D(Message Broker - queue.Queue)
-        E[Matching Engine Thread] -->|Consume Events| D
-        E -->|Calculate Recommendations / Distances| B
-        E -->|Order Lifecycle Simulation Threads| B
-    end
-    subgraph Frontend Dashboard
-        F[HTML5 / Vanilla CSS UI] <-->|Fetch Loop & POST Actions| A
-        G[Canvas Visualizer] -->|Project Coordinates| F
-    end
-```
-
 ### 1. The Multi-Threaded Engine (Python Backend)
 * **Thread-Safe Global State (`GlobalState`)**: Implements strict thread-safety using Python's `threading.Lock` to coordinate real-time updates of users, restaurants, recommendations, orders, and configuration variables.
 * **Message Broker (`MessageBroker`)**: A simulated pub-sub queue utilizing `queue.Queue` to handle system-wide events asynchronously.
