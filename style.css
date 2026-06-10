@@ -1,20 +1,20 @@
 /* Zomato Operations Central Stylesheet */
 :root {
-    --bg-dark: #08090d;
-    --bg-card: #10121b;
-    --bg-hover: #171a28;
-    --accent: #ff3f6c;
-    --accent-glow: rgba(255, 63, 108, 0.4);
+    --bg-dark: #060813;
+    --bg-card: rgba(16, 20, 38, 0.65);
+    --bg-hover: rgba(28, 33, 61, 0.6);
+    --accent: #ff3f70;
+    --accent-glow: rgba(255, 63, 112, 0.4);
     --accent-success: #00e676;
     --accent-success-glow: rgba(0, 230, 118, 0.25);
-    --accent-info: #00e5ff;
+    --accent-info: #00f5ff;
     --accent-warning: #ffb300;
-    --border: #202438;
-    --border-glow: #2b304e;
+    --border: rgba(255, 255, 255, 0.07);
+    --border-glow: rgba(0, 245, 255, 0.15);
     
     --text-main: #f0f2f8;
-    --text-muted: #7d85aa;
-    --text-inactive: #4d5270;
+    --text-muted: #8e98c2;
+    --text-inactive: #555c82;
 }
 
 * {
@@ -121,10 +121,13 @@ body {
     grid-template-columns: 360px 1fr 420px;
     flex: 1;
     overflow: hidden;
+    background: radial-gradient(circle at 50% 50%, #101530 0%, #060813 100%);
 }
 
 .app-column {
     background-color: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -132,13 +135,13 @@ body {
 }
 
 .left-column {
-    background-color: #0d0e16; /* Slight color differentiation */
+    background-color: rgba(10, 12, 26, 0.7);
 }
 
 .right-column {
     border-right: none;
     border-left: 1px solid var(--border);
-    background-color: #0d0e16;
+    background-color: rgba(10, 12, 26, 0.7);
 }
 
 .column-header {
@@ -757,3 +760,216 @@ input[type="text"]:focus {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* Custom Scrollbar styling */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.01);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--border-glow);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-info);
+}
+
+/* Switch toggle slider styling */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 18px;
+    margin-right: 2px;
+}
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #2b304e;
+    transition: .25s ease;
+    border-radius: 18px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .25s ease;
+    border-radius: 50%;
+}
+input:checked + .slider {
+    background-color: var(--accent-success);
+    box-shadow: 0 0 8px rgba(0, 230, 118, 0.4);
+}
+input:checked + .slider:before {
+    transform: translateX(14px);
+}
+.toggle-pill {
+    gap: 8px;
+    padding: 0.35rem 0.7rem;
+    display: flex;
+    align-items: center;
+}
+.toggle-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-main);
+    user-select: none;
+}
+
+/* Cuisine scrolling tags styling */
+.cuisine-tags-scroll {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 4px 2px 8px 2px;
+    margin-bottom: 2px;
+}
+.cuisine-tags-scroll::-webkit-scrollbar {
+    display: none;
+}
+.cuisine-tag {
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-muted);
+    user-select: none;
+}
+.cuisine-tag:hover {
+    border-color: var(--accent-info);
+    color: var(--text-main);
+    background-color: rgba(0, 245, 255, 0.04);
+}
+.cuisine-tag.active {
+    background-color: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(255, 63, 112, 0.35);
+}
+
+/* Search input wrapper styling */
+.search-box-wrapper {
+    margin-bottom: 0.5rem;
+}
+.search-input {
+    width: 100%;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+.search-input:focus {
+    border-color: var(--accent-info);
+    box-shadow: 0 0 8px rgba(0, 245, 255, 0.15);
+}
+
+/* Distance badge styling */
+.badge-distance {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+}
+.badge-distance.dist-near {
+    background-color: rgba(0, 230, 118, 0.12);
+    color: var(--accent-success);
+}
+.badge-distance.dist-medium {
+    background-color: rgba(255, 179, 0, 0.12);
+    color: var(--accent-warning);
+}
+.badge-distance.dist-far {
+    background-color: rgba(255, 63, 108, 0.12);
+    color: var(--accent);
+}
+
+/* Pipeline Order progress bar */
+.pipe-card-progress-container {
+    width: 100%;
+    height: 4px;
+    background-color: var(--bg-dark);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+.pipe-card-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent-info), var(--accent));
+    transition: width 1s linear;
+}
+
+/* Log filter chip bar styling */
+.console-filter-bar {
+    display: flex;
+    gap: 6px;
+    padding: 0.5rem 0.8rem;
+    background-color: #05060a;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+}
+.console-filter-bar::-webkit-scrollbar {
+    display: none;
+}
+.filter-chip {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.filter-chip:hover {
+    border-color: var(--accent-info);
+    color: var(--text-main);
+    background-color: rgba(0, 245, 255, 0.03);
+}
+.filter-chip.active {
+    background-color: rgba(0, 245, 255, 0.12);
+    border-color: var(--accent-info);
+    color: var(--accent-info);
+    box-shadow: 0 0 6px rgba(0, 245, 255, 0.15);
+}
+.console-actions {
+    display: flex;
+    gap: 10px;
+}
+.console-actions .btn-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.console-actions .btn-text:hover {
+    text-shadow: 0 0 6px rgba(0, 245, 255, 0.4);
+}
+

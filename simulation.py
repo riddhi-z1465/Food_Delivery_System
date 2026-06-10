@@ -681,6 +681,8 @@ def initialize_mock_data():
             "status": "ONLINE"
         }
         global_state.add_user(u["id"], user_data)
+        # Publish initial USER_MOVE so MatchingEngine computes recommendations on startup
+        message_broker.publish("USER_MOVE", user_data)
         logger.info(f"Initialized User: {u['name']} at ({start_lat}, {start_lon})")
 
 def main():

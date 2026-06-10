@@ -5,6 +5,17 @@ let activeMenuRestaurantId = null;
 let currentCart = { item: null, quantity: 1, price: 0, restaurantId: null };
 let systemStartTime = Date.now();
 
+// Interactive Filter & Search states
+let activeCuisineFilter = 'all';
+let menuItemSearchQuery = '';
+let activeLogFilter = 'all';
+let serverClientOffset = 0;
+
+// Coordinate interpolation & animations state
+let userInterpolations = {};
+let activeRiders = {};
+let ripples = [];
+
 // Connect to backend (if running on a different port like Live Server 5500, fallback to default 8080)
 const BACKEND_URL = (window.location.port !== '8080' && window.location.port !== '8085' && window.location.port !== '') 
     ? 'http://127.0.0.1:8080' 
@@ -67,13 +78,20 @@ function init() {
     fetchState();
     setInterval(fetchState, 1000);
     setInterval(updateUptime, 1000);
+    
+    // Start continuous rendering loop for smoother transitions & animations
+    requestAnimationFrame(animationLoop);
+}
+
+function animationLoop() {
+    drawMap();
+    requestAnimationFrame(animationLoop);
 }
 
 // Adjust canvas resolution dynamically
 function resizeCanvas() {
     canvas.width = canvas.parentElement.clientWidth;
     canvas.height = canvas.parentElement.clientHeight;
-    drawMap();
 }
 window.addEventListener('resize', resizeCanvas);
 setTimeout(resizeCanvas, 100);
@@ -87,17 +105,56 @@ async function fetchState() {
         if (!response.ok) throw new Error("Network status not OK");
         stateData = await response.json();
         
+        // Calculate server time offset
+        if (stateData.timestamp) {
+            const serverTime = new Date(stateData.timestamp).getTime();
+            serverClientOffset = serverTime - Date.now();
+        }
+        
         // Synchronize backend config toggles with UI
         if (stateData.config) {
             toggleAutoMove.checked = stateData.config.auto_move_enabled;
             toggleAutoOrders.checked = stateData.config.auto_orders_enabled;
         }
         
+        // Track orders in OUT_FOR_DELIVERY state for scooter animation
+        const orders = stateData.orders || {};
+        Object.keys(orders).forEach(oid => {
+            const o = orders[oid];
+            if (o.status === 'OUT_FOR_DELIVERY') {
+                if (!activeRiders[oid]) {
+                    activeRiders[oid] = {
+                        orderId: oid,
+                        restaurantId: o.restaurant_id,
+                        userId: o.user_id,
+                        startTime: Date.now(),
+                        duration: 4000 // 4 seconds state timer
+                    };
+                }
+            } else if (activeRiders[oid]) {
+                // Remove rider and add success ripple if order status changed from delivery
+                const rider = activeRiders[oid];
+                const rest = stateData.restaurants[rider.restaurantId];
+                const u = stateData.users[rider.userId];
+                if (rest && u) {
+                    const userPos = projectCoordinates(u.lat, u.lon);
+                    ripples.push({
+                        x: userPos.x,
+                        y: userPos.y,
+                        radius: 5,
+                        maxRadius: 35,
+                        alpha: 1.0,
+                        speed: 0.8
+                    });
+                }
+                delete activeRiders[oid];
+            }
+        });
+        
         updateSelectors();
         updateCustomerOrderApp();
         updatePipelines();
         updateLogConsole();
-        drawMap();
     } catch (error) {
         console.error("Error fetching state:", error);
     }
@@ -144,6 +201,17 @@ function setupEventListeners() {
         updateCustomerOrderApp();
     });
 
+    // Cuisine Filter Tags click handling
+    const cuisineTags = document.querySelectorAll('.cuisine-tag');
+    cuisineTags.forEach(tag => {
+        tag.addEventListener('click', () => {
+            cuisineTags.forEach(t => t.classList.remove('active'));
+            tag.classList.add('active');
+            activeCuisineFilter = tag.dataset.cuisine;
+            updateCustomerOrderApp();
+        });
+    });
+
     // Close restaurant menu view
     closeMenuBtn.addEventListener('click', () => {
         activeMenuRestaurantId = null;
@@ -185,11 +253,50 @@ function setupEventListeners() {
         });
     });
 
+    // Console logs filter chips handling
+    const filterChips = document.querySelectorAll('.filter-chip');
+    filterChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            filterChips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeLogFilter = chip.dataset.filter;
+            updateLogConsole();
+        });
+    });
+
     // Clear logs
     clearLogsBtn.addEventListener('click', () => {
         logConsoleStream.innerHTML = '';
         stateData.recent_events = [];
     });
+
+    // Copy logs to clipboard
+    const copyLogsBtn = document.getElementById('copy-logs-btn');
+    if (copyLogsBtn) {
+        copyLogsBtn.addEventListener('click', () => {
+            const linesText = Array.from(logConsoleStream.querySelectorAll('.log-line'))
+                .map(line => line.innerText)
+                .join('\n');
+            navigator.clipboard.writeText(linesText).then(() => {
+                const prevText = copyLogsBtn.innerText;
+                copyLogsBtn.innerText = 'Copied!';
+                setTimeout(() => { copyLogsBtn.innerText = prevText; }, 1500);
+            }).catch(err => {
+                console.error("Copy failed: ", err);
+            });
+        });
+    }
+
+    // Menu search filter logic
+    const menuSearchInput = document.getElementById('menu-item-search');
+    if (menuSearchInput) {
+        menuSearchInput.addEventListener('input', (e) => {
+            menuItemSearchQuery = e.target.value.toLowerCase();
+            if (activeMenuRestaurantId) {
+                renderMenu(activeMenuRestaurantId);
+            }
+        });
+    }
 
     // Modal triggers
     addUserTrigger.addEventListener('click', () => {
@@ -227,7 +334,7 @@ function setupEventListeners() {
     // Reset visual map bounds
     resetViewBtn.addEventListener('click', () => {
         bounds = { minLat: Infinity, maxLat: -Infinity, minLon: Infinity, maxLon: -Infinity };
-        drawMap();
+        userInterpolations = {};
     });
 }
 
@@ -241,12 +348,9 @@ function updateUptime() {
 
 function updateSelectors() {
     const currentSelVal = customerSelector.value;
-    // Populate select values if counts differ
     const userKeys = Object.keys(stateData.users);
     
-    // Check if dropdown option count matches user list + 1 default
     if (customerSelector.options.length !== userKeys.length + 1) {
-        // Keep initial option
         customerSelector.innerHTML = '<option value="" disabled selected>Choose a customer...</option>';
         userKeys.forEach(uid => {
             const u = stateData.users[uid];
@@ -256,7 +360,6 @@ function updateSelectors() {
             customerSelector.appendChild(opt);
         });
         
-        // Restore selection if valid
         if (stateData.users[currentSelVal]) {
             customerSelector.value = currentSelVal;
         } else {
@@ -287,15 +390,39 @@ function updateCustomerOrderApp() {
         return;
     }
 
-    recs.forEach(r => {
+    // Filter by active cuisine selection
+    let filteredRecs = recs;
+    if (activeCuisineFilter !== 'all') {
+        filteredRecs = recs.filter(r => r.cuisine === activeCuisineFilter);
+    }
+
+    if (filteredRecs.length === 0) {
+        appRestaurantList.innerHTML = `<div class="empty-state" style="padding: 1rem;">No ${activeCuisineFilter} restaurants nearby.</div>`;
+        return;
+    }
+
+    filteredRecs.forEach(r => {
         const item = document.createElement('div');
         item.className = 'list-item';
+        
+        let distClass = 'dist-near';
+        if (r.distance_km > 3.5) {
+            distClass = 'dist-far';
+        } else if (r.distance_km > 1.5) {
+            distClass = 'dist-medium';
+        }
+        
+        const ratingVal = Math.round(r.rating);
+        const starsStr = '★'.repeat(ratingVal) + '☆'.repeat(5 - ratingVal);
+        
         item.innerHTML = `
             <div class="item-left">
                 <span class="item-name">📍 ${r.name}</span>
-                <span class="item-desc">${r.cuisine} Cuisine • ⭐ ${r.rating}</span>
+                <span class="item-desc">${r.cuisine} Cuisine • <span style="color:var(--accent-warning);">${starsStr}</span> ${r.rating.toFixed(1)}</span>
             </div>
-            <div class="item-right">${r.distance_km} km</div>
+            <div class="item-right">
+                <span class="badge-distance ${distClass}">${r.distance_km} km</span>
+            </div>
         `;
         
         item.addEventListener('click', () => openRestaurantMenu(r.restaurant_id, r.name));
@@ -311,8 +438,31 @@ function openRestaurantMenu(restId, restName) {
     appMenuRestaurantName.innerText = rest.name;
     appMenuSection.classList.remove('hidden');
     
+    // Reset search query
+    menuItemSearchQuery = '';
+    const menuSearchInput = document.getElementById('menu-item-search');
+    if (menuSearchInput) menuSearchInput.value = '';
+    
+    renderMenu(restId);
+}
+
+function renderMenu(restId) {
+    const rest = stateData.restaurants[restId];
+    if (!rest) return;
+
     appMenuList.innerHTML = '';
-    rest.menu.forEach(m => {
+    
+    // Filter dishes by search
+    const filteredMenu = rest.menu.filter(m => 
+        m.name.toLowerCase().includes(menuItemSearchQuery)
+    );
+    
+    if (filteredMenu.length === 0) {
+        appMenuList.innerHTML = '<div class="empty-state" style="padding:1rem;">No matching items found.</div>';
+        return;
+    }
+
+    filteredMenu.forEach(m => {
         const item = document.createElement('div');
         item.className = 'list-item';
         item.innerHTML = `
@@ -327,9 +477,8 @@ function openRestaurantMenu(restId, restName) {
         appMenuList.appendChild(item);
     });
 
-    // Auto-select first item in menu
-    if (rest.menu.length > 0) {
-        selectCartItem(rest.menu[0], restId);
+    if (filteredMenu.length > 0 && (!currentCart.item || !filteredMenu.find(m => m.name === currentCart.item.name))) {
+        selectCartItem(filteredMenu[0], restId);
     }
 }
 
@@ -365,7 +514,6 @@ function updatePipelines() {
     const orders = stateData.orders || {};
     const oKeys = Object.keys(orders);
     
-    // Separate into statuses
     const groups = { PENDING: [], PREPARING: [], OUT_FOR_DELIVERY: [], DELIVERED: [] };
     let activeCount = 0;
     
@@ -381,7 +529,7 @@ function updatePipelines() {
 
     activeOrdersBadge.innerText = `${activeCount} Active`;
 
-    const populatePipe = (container, list) => {
+    const populatePipe = (container, list, hasProgress) => {
         container.innerHTML = '';
         if (list.length === 0) {
             container.innerHTML = '<span style="font-size:0.6rem; color:var(--text-inactive); text-align:center; display:block; margin-top:20px;">Empty</span>';
@@ -390,6 +538,18 @@ function updatePipelines() {
         list.slice().reverse().forEach(o => {
             const card = document.createElement('div');
             card.className = 'pipe-card';
+            
+            let progressBarHtml = '';
+            if (hasProgress && o.status !== 'DELIVERED') {
+                const orderAgeMs = (Date.now() + serverClientOffset) - new Date(o.updated_at).getTime();
+                const pct = Math.min(100, Math.max(0, (orderAgeMs / 4000) * 100));
+                progressBarHtml = `
+                    <div class="pipe-card-progress-container">
+                        <div class="pipe-card-progress-bar" style="width: ${pct}%"></div>
+                    </div>
+                `;
+            }
+            
             card.innerHTML = `
                 <div class="pipe-card-header">
                     <span>${o.order_id}</span>
@@ -397,32 +557,30 @@ function updatePipelines() {
                 </div>
                 <div class="pipe-card-body">${o.quantity}x ${o.item_name}</div>
                 <div class="pipe-card-footer">${o.restaurant_name} &rarr; ${o.user_name}</div>
+                ${progressBarHtml}
             `;
             container.appendChild(card);
         });
     };
 
-    populatePipe(pipePending, groups.PENDING);
-    populatePipe(pipePreparing, groups.PREPARING);
-    populatePipe(pipeDelivery, groups.OUT_FOR_DELIVERY);
-    populatePipe(pipeDelivered, groups.DELIVERED);
+    populatePipe(pipePending, groups.PENDING, true);
+    populatePipe(pipePreparing, groups.PREPARING, true);
+    populatePipe(pipeDelivery, groups.OUT_FOR_DELIVERY, true);
+    populatePipe(pipeDelivered, groups.DELIVERED, false);
 }
 
 function updateLogConsole() {
     const logs = stateData.recent_events || [];
-    
-    // We only want to append new logs to console stream to avoid clearing scroll state
-    const currentLinesCount = logConsoleStream.childElementCount;
+    logConsoleStream.innerHTML = '';
     if (logs.length === 0) return;
     
-    // If list was cleared, reset console
-    if (currentLinesCount > logs.length) {
-        logConsoleStream.innerHTML = '';
-    }
-    
-    // Append any events not yet in the stream
-    const itemsToAdd = logs.slice(logConsoleStream.childElementCount);
-    itemsToAdd.forEach(evt => {
+    // Filter events
+    const filteredLogs = logs.filter(evt => {
+        if (activeLogFilter === 'all') return true;
+        return evt.event_type === activeLogFilter;
+    });
+
+    filteredLogs.forEach(evt => {
         const line = document.createElement('div');
         line.className = `log-line ${evt.event_type}`;
         
@@ -445,8 +603,8 @@ function updateLogConsole() {
             <strong>${evt.event_type}</strong>: ${payloadStr}
         `;
         logConsoleStream.appendChild(line);
-        logConsoleStream.scrollTop = logConsoleStream.scrollHeight; // Auto-scroll
     });
+    logConsoleStream.scrollTop = logConsoleStream.scrollHeight; // Auto-scroll
 }
 
 // -------------------------------------------------------------------------
@@ -458,7 +616,6 @@ function computeBounds() {
     
     if (userKeys.length === 0 && restKeys.length === 0) return;
     
-    // Compute current scale constraints
     const updateBounds = (lat, lon) => {
         if (lat < bounds.minLat) bounds.minLat = lat;
         if (lat > bounds.maxLat) bounds.maxLat = lat;
@@ -475,7 +632,6 @@ function projectCoordinates(lat, lon) {
     const w = canvas.width - padding * 2;
     const h = canvas.height - padding * 2;
     
-    // Expand boundary margins slightly to keep points inside
     const latSpan = (bounds.maxLat - bounds.minLat) || 0.002;
     const lonSpan = (bounds.maxLon - bounds.minLon) || 0.002;
     
@@ -490,7 +646,6 @@ function projectCoordinates(lat, lon) {
 }
 
 function deprojectCoordinates(x, y) {
-    // Reverse coordinates mapping from screen x/y to lat/lon
     const padding = 50;
     const w = canvas.width - padding * 2;
     const h = canvas.height - padding * 2;
@@ -517,10 +672,32 @@ function drawMap() {
     
     if (userKeys.length === 0 && restKeys.length === 0) return;
     
-    // 1. Draw grid coordinate lines
-    ctx.strokeStyle = '#181b28';
+    // -- VECTOR BACKGROUND DRAWINGS --
+    // 1. Draw River / Coastline
+    ctx.fillStyle = 'rgba(0, 150, 255, 0.04)';
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height * 0.7);
+    ctx.bezierCurveTo(canvas.width * 0.3, canvas.height * 0.75, canvas.width * 0.6, canvas.height * 0.55, canvas.width, canvas.height * 0.6);
+    ctx.lineTo(canvas.width, canvas.height);
+    ctx.lineTo(0, canvas.height);
+    ctx.closePath();
+    ctx.fill();
+
+    // 2. Draw Park Area
+    ctx.fillStyle = 'rgba(0, 230, 118, 0.03)';
+    ctx.beginPath();
+    ctx.arc(canvas.width * 0.75, canvas.height * 0.3, 75, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = 'rgba(0, 230, 118, 0.12)';
+    ctx.font = 'italic 500 10px Outfit';
+    ctx.textAlign = 'center';
+    ctx.fillText("Green Zone Park", canvas.width * 0.75, canvas.height * 0.3);
+
+    // 3. Draw Grid lines (Street network layout)
+    ctx.strokeStyle = 'rgba(32, 36, 56, 0.4)';
     ctx.lineWidth = 1;
-    const gridDivisions = 5;
+    const gridDivisions = 6;
     for (let i = 0; i <= gridDivisions; i++) {
         const gridX = 50 + (i / gridDivisions) * (canvas.width - 100);
         ctx.beginPath(); ctx.moveTo(gridX, 50); ctx.lineTo(gridX, canvas.height - 50); ctx.stroke();
@@ -528,104 +705,196 @@ function drawMap() {
         const gridY = 50 + (i / gridDivisions) * (canvas.height - 100);
         ctx.beginPath(); ctx.moveTo(50, gridY); ctx.lineTo(canvas.width - 50, gridY); ctx.stroke();
     }
-    
-    // Collect coordinates projection map for hover checks
+
+    // 4. Draw street names / sector labels
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.font = '600 9px JetBrains Mono';
+    ctx.textAlign = 'left';
+    ctx.fillText("SECTOR 1 / NORTH-WEST", 20, 30);
+    ctx.fillText("SECTOR 2 / EAST PARK", canvas.width - 135, 30);
+    ctx.fillText("COASTAL DISTRICT", 20, canvas.height - 20);
+
     const currentPins = [];
     
-    // 2. Draw closest matched lines
+    // -- closest match line drawing --
     ctx.lineWidth = 1.5;
     userKeys.forEach(uid => {
         const u = stateData.users[uid];
+        
+        // Coordinates interpolation logic for users
+        if (!userInterpolations[uid]) {
+            userInterpolations[uid] = { lat: u.lat, lon: u.lon };
+        } else {
+            // Smoothly ease user towards target coords
+            userInterpolations[uid].lat += (u.lat - userInterpolations[uid].lat) * 0.08;
+            userInterpolations[uid].lon += (u.lon - userInterpolations[uid].lon) * 0.08;
+        }
+
         const recs = stateData.recommendations[uid] || [];
-        const uPos = projectCoordinates(u.lat, u.lon);
+        const uPos = projectCoordinates(userInterpolations[uid].lat, userInterpolations[uid].lon);
         
         if (recs.length > 0) {
-            // Draw link to nearest matched restaurant
             const nearest = recs[0];
             const rPos = projectCoordinates(nearest.lat, nearest.lon);
             
-            // Highlight link if user is selected
             if (uid === selectedUserId) {
-                ctx.strokeStyle = 'rgba(0, 229, 255, 0.45)';
+                ctx.strokeStyle = 'rgba(0, 245, 255, 0.5)';
                 ctx.setLineDash([5, 3]);
+                ctx.beginPath(); ctx.moveTo(uPos.x, uPos.y); ctx.lineTo(rPos.x, rPos.y); ctx.stroke();
             } else {
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
                 ctx.setLineDash([]);
+                ctx.beginPath(); ctx.moveTo(uPos.x, uPos.y); ctx.lineTo(rPos.x, rPos.y); ctx.stroke();
             }
-            ctx.beginPath(); ctx.moveTo(uPos.x, uPos.y); ctx.lineTo(rPos.x, rPos.y); ctx.stroke();
         }
     });
-    ctx.setLineDash([]); // Reset dash state
+    ctx.setLineDash([]);
 
-    // 3. Draw Restaurant Pins
+    // 5. Draw Active Riders scooting along routes
+    Object.keys(activeRiders).forEach(oid => {
+        const rider = activeRiders[oid];
+        const rest = stateData.restaurants[rider.restaurantId];
+        const u = stateData.users[rider.userId];
+        
+        if (rest && u) {
+            const elapsed = Date.now() - rider.startTime;
+            let pct = elapsed / rider.duration;
+            if (pct > 1.0) pct = 1.0;
+            
+            // Interpolate coordinates
+            const riderLat = rest.lat + (u.lat - rest.lat) * pct;
+            const riderLon = rest.lon + (u.lon - rest.lon) * pct;
+            
+            const restPos = projectCoordinates(rest.lat, rest.lon);
+            const userPos = projectCoordinates(u.lat, u.lon);
+            const riderPos = projectCoordinates(riderLat, riderLon);
+            
+            // Draw background route line (dashed cyan)
+            ctx.strokeStyle = 'rgba(0, 245, 255, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(restPos.x, restPos.y);
+            ctx.lineTo(userPos.x, userPos.y);
+            ctx.stroke();
+            
+            // Draw traveled path line (solid cyan)
+            ctx.strokeStyle = 'rgba(0, 245, 255, 0.8)';
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(restPos.x, restPos.y);
+            ctx.lineTo(riderPos.x, riderPos.y);
+            ctx.stroke();
+            
+            // Draw Rider Scooter Circle
+            ctx.fillStyle = '#00f5ff';
+            ctx.beginPath();
+            ctx.arc(riderPos.x, riderPos.y, 11, 0, Math.PI*2);
+            ctx.fill();
+            
+            ctx.font = '12px Outfit';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🛵', riderPos.x, riderPos.y);
+            
+            // Active route label
+            ctx.fillStyle = 'rgba(0, 245, 255, 0.9)';
+            ctx.font = '600 8px JetBrains Mono';
+            ctx.fillText(oid, riderPos.x, riderPos.y - 15);
+        }
+    });
+
+    // 6. Draw success ripples
+    for (let i = ripples.length - 1; i >= 0; i--) {
+        const ripple = ripples[i];
+        ripple.radius += ripple.speed;
+        ripple.alpha -= 0.025;
+        
+        ctx.strokeStyle = `rgba(0, 230, 118, ${ripple.alpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        if (ripple.alpha <= 0) {
+            ripples.splice(i, 1);
+        }
+    }
+
+    // 7. Draw Restaurant Pins
     restKeys.forEach(rid => {
         const rest = stateData.restaurants[rid];
         const pos = projectCoordinates(rest.lat, rest.lon);
         const radius = 8;
         
-        // Push to hover target tracker
         currentPins.push({ type: 'restaurant', id: rid, x: pos.x, y: pos.y, radius, name: rest.name, cuisine: rest.cuisine, rating: rest.rating });
         
-        // Glow effect
-        ctx.fillStyle = 'rgba(255, 63, 108, 0.15)';
-        ctx.beginPath(); ctx.arc(pos.x, pos.y, 14, 0, Math.PI*2); ctx.fill();
+        const isHovered = (hoveredElement && hoveredElement.type === 'restaurant' && hoveredElement.id === rid);
+        const isActiveMenu = (activeMenuRestaurantId === rid);
         
-        ctx.fillStyle = '#ff3f6c';
+        // Glowing halo effect
+        if (isHovered || isActiveMenu) {
+            ctx.fillStyle = 'rgba(255, 63, 112, 0.25)';
+            ctx.beginPath(); ctx.arc(pos.x, pos.y, 18, 0, Math.PI*2); ctx.fill();
+            
+            ctx.strokeStyle = 'rgba(255, 63, 112, 0.7)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(pos.x, pos.y, 14, 0, Math.PI*2); ctx.stroke();
+        } else {
+            ctx.fillStyle = 'rgba(255, 63, 112, 0.15)';
+            ctx.beginPath(); ctx.arc(pos.x, pos.y, 13, 0, Math.PI*2); ctx.fill();
+        }
+        
+        ctx.fillStyle = '#ff3f70';
         ctx.beginPath(); ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2); ctx.fill();
         
-        // Center white core
         ctx.fillStyle = '#fff';
         ctx.beginPath(); ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2); ctx.fill();
         
-        // Highlight active browsing menu restaurant
-        if (activeMenuRestaurantId === rid) {
-            ctx.strokeStyle = 'rgba(0, 229, 255, 0.8)';
-            ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(pos.x, pos.y, 11, 0, Math.PI*2); ctx.stroke();
-        }
-        
-        // Text labels
         ctx.fillStyle = 'var(--text-main)';
-        ctx.font = '500 10px Outfit';
+        ctx.font = '600 10px Outfit';
         ctx.textAlign = 'center';
         ctx.fillText(rest.name, pos.x, pos.y - 12);
     });
     
-    // 4. Draw User Pins
+    // 8. Draw User Pins
     userKeys.forEach(uid => {
         const u = stateData.users[uid];
-        const pos = projectCoordinates(u.lat, u.lon);
+        const interp = userInterpolations[uid] || u;
+        const pos = projectCoordinates(interp.lat, interp.lon);
         const radius = 6;
         const isSelected = (uid === selectedUserId);
+        const isHovered = (hoveredElement && hoveredElement.type === 'user' && hoveredElement.id === uid);
         
         currentPins.push({ type: 'user', id: uid, x: pos.x, y: pos.y, radius, name: u.name, cuisine: u.preference_cuisine, data: u });
         
-        // Draw matched discovery radius circle (5km) if user is selected
         if (isSelected) {
-            const rangePos = projectCoordinates(u.lat + 0.005, u.lon); // Approx 5km offset
+            const rangePos = projectCoordinates(interp.lat + 0.005, interp.lon);
             const visualRadius = Math.abs(pos.y - rangePos.y);
             
-            ctx.strokeStyle = 'rgba(0, 230, 118, 0.15)';
-            ctx.fillStyle = 'rgba(0, 230, 118, 0.015)';
+            ctx.strokeStyle = 'rgba(0, 230, 118, 0.12)';
+            ctx.fillStyle = 'rgba(0, 230, 118, 0.01)';
             ctx.beginPath(); ctx.arc(pos.x, pos.y, visualRadius, 0, Math.PI*2); ctx.fill(); ctx.stroke();
             
-            // Outer selector ring
-            ctx.strokeStyle = '#00e5ff';
+            const pulseRadius = 11 + Math.sin(Date.now() / 150) * 1.5;
+            ctx.strokeStyle = 'rgba(0, 245, 255, 0.8)';
             ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.arc(pos.x, pos.y, 11, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(pos.x, pos.y, pulseRadius, 0, Math.PI*2); ctx.stroke();
+        } else if (isHovered) {
+            ctx.strokeStyle = 'rgba(0, 230, 118, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(pos.x, pos.y, 10, 0, Math.PI*2); ctx.stroke();
         }
         
-        ctx.fillStyle = isSelected ? '#00e5ff' : '#00e676';
+        ctx.fillStyle = isSelected ? '#00f5ff' : '#00e676';
         ctx.beginPath(); ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2); ctx.fill();
         
-        // Text labels
-        ctx.fillStyle = isSelected ? '#00e5ff' : 'var(--text-muted)';
+        ctx.fillStyle = isSelected ? '#00f5ff' : 'var(--text-muted)';
         ctx.font = isSelected ? '600 11px Outfit' : '400 10px Outfit';
         ctx.textAlign = 'center';
         ctx.fillText(u.name, pos.x, pos.y + 16);
     });
     
-    // Save current projected points globally for mouse movements
     window.projectedPins = currentPins;
 }
 
@@ -649,21 +918,22 @@ function handleCanvasMouseMove(e) {
         hoveredElement = found;
         canvas.style.cursor = 'pointer';
         
-        // Show tooltip overlay
         mapTooltip.style.opacity = '1';
         mapTooltip.style.left = `${e.clientX - rect.left + 15}px`;
         mapTooltip.style.top = `${e.clientY - rect.top + 15}px`;
         
         if (found.type === 'restaurant') {
+            const stars = '★'.repeat(Math.round(found.rating)) + '☆'.repeat(5 - Math.round(found.rating));
             mapTooltip.innerHTML = `
-                <div style="font-weight:700; color:var(--accent);">🍔 ${found.name}</div>
-                <div style="font-size:0.65rem; color:var(--text-muted); margin-top:2px;">Cuisine: ${found.cuisine} • Rating: ⭐${found.rating}</div>
+                <div style="font-weight:700; color:var(--accent); display:flex; align-items:center; gap:4px;">🍔 ${found.name}</div>
+                <div style="font-size:0.7rem; color:var(--text-main); margin-top:3px;">Cuisine: ${found.cuisine}</div>
+                <div style="font-size:0.65rem; color:var(--accent-warning); margin-top:2px;">${stars} ${found.rating.toFixed(1)}</div>
             `;
         } else {
             mapTooltip.innerHTML = `
                 <div style="font-weight:700; color:var(--accent-success);">👤 ${found.name}</div>
-                <div style="font-size:0.65rem; color:var(--text-muted); margin-top:2px;">Preference: ${found.cuisine}</div>
-                <div style="font-size:0.6rem; color:var(--text-inactive);">Click to select • Double click to drag</div>
+                <div style="font-size:0.7rem; color:var(--text-main); margin-top:3px;">Fav: ${found.cuisine}</div>
+                <div style="font-size:0.6rem; color:var(--text-inactive); margin-top:4px;">Click to control user</div>
             `;
         }
     } else {
@@ -678,7 +948,6 @@ function handleCanvasClick(e) {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    // 1. Check if user clicked on an existing user to select them
     if (hoveredElement) {
         if (hoveredElement.type === 'user') {
             selectedUserId = hoveredElement.id;
@@ -691,7 +960,6 @@ function handleCanvasClick(e) {
         }
     }
     
-    // 2. Click in empty space moves the active user to clicked coordinates immediately
     if (selectedUserId) {
         const coords = deprojectCoordinates(x, y);
         postRequest('/api/users/location', {
