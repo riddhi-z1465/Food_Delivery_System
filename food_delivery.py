@@ -22,6 +22,9 @@ import json
 import logging
 import threading
 from datetime import datetime
+import os
+import signal
+import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # Configure Logging
@@ -386,6 +389,11 @@ class MatchingEngine(threading.Thread):
 # -------------------------------------------------------------------------
 # HTTP API & Web Dashboard Server
 # -------------------------------------------------------------------------
+class ReusableThreadingHTTPServer(ThreadingHTTPServer):
+    """ThreadingHTTPServer with SO_REUSEADDR enabled to avoid 'Address already in use' errors."""
+    allow_reuse_address = True
+
+
 class SimulationAPIHandler(BaseHTTPRequestHandler):
     """
     Handles API requests.
@@ -695,10 +703,29 @@ def main():
     user_simulator = UserSimulator()
 
     # Configure HTTP server on localhost:8080 (or custom environment PORT)
-    import os
     port = int(os.environ.get("PORT", 8080))
+
+    # Auto-kill any stale process still holding the port
+    try:
+        result = subprocess.run(
+            ["lsof", "-ti", f":{port}"],
+            capture_output=True, text=True
+        )
+        pids = [p for p in result.stdout.strip().split() if p]
+        killed = False
+        for pid in pids:
+            pid = int(pid)
+            if pid != os.getpid():
+                os.kill(pid, signal.SIGKILL)
+                logger.info(f"Killed stale process PID {pid} holding port {port}.")
+                killed = True
+        if killed:
+            time.sleep(1.0)  # Give the OS a moment to release the socket
+    except Exception:
+        pass  # Non-fatal: proceed and let SO_REUSEADDR handle it
+
     server_address = ('127.0.0.1', port)
-    httpd = ThreadingHTTPServer(server_address, SimulationAPIHandler)
+    httpd = ReusableThreadingHTTPServer(server_address, SimulationAPIHandler)
     
     server_thread = threading.Thread(
         target=httpd.serve_forever,
