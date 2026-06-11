@@ -10,7 +10,9 @@
 <body>
     <header class="app-header">
         <div class="header-logo">
-            <span class="logo-icon">🛵</span>
+            <span class="logo-icon">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="18" r="3"></circle><path d="M6 18h4l2-8h6"></path><path d="M18 18h-3l-2-6"></path><path d="M12 6h5a2 2 0 0 1 2 2v2"></path><rect x="3" y="10" width="4" height="5" rx="1"></rect></svg>
+            </span>
             <div class="logo-text">
                 <h1>Zomato Live</h1>
                 <p>Operations & Match Dispatch Simulator</p>
@@ -22,14 +24,20 @@
                     <input type="checkbox" id="toggle-auto-move">
                     <span class="slider round"></span>
                 </label>
-                <span class="toggle-label">🤖 Auto-Move</span>
+                <span class="toggle-label">
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4M8 15h.01M16 15h.01"></path></svg>
+                    Auto-Move
+                </span>
             </div>
             <div class="stat-pill toggle-pill">
                 <label class="switch">
                     <input type="checkbox" id="toggle-auto-orders">
                     <span class="slider round"></span>
                 </label>
-                <span class="toggle-label">🍕 Auto-Orders</span>
+                <span class="toggle-label">
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                    Auto-Orders
+                </span>
             </div>
             <div class="stat-pill">
                 <span class="pill-dot green animate-pulse"></span>
@@ -50,7 +58,10 @@
         <!-- LEFT COLUMN: Customer Hub (Order & Interaction) -->
         <section class="app-column left-column" aria-label="Customer Control Center">
             <div class="column-header">
-                <h2>👤 Customer Hub</h2>
+                <h2>
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    Customer Hub
+                </h2>
                 <span class="header-subtitle">Interactive Play Area</span>
             </div>
             <div class="column-content">
@@ -64,67 +75,111 @@
                     </div>
                 </div>
 
-                <!-- Customer Details & Order App -->
-                <div id="customer-order-card" class="order-app-card hidden">
-                    <div class="app-user-info">
-                        <div class="user-avatar-circle">🧑‍💻</div>
-                        <div>
-                            <h3 id="app-user-name">Rahul</h3>
-                            <span id="app-user-cuisine" class="badge-cuisine">Indian Preference</span>
+                <!-- Smartphone Mockup Container -->
+                <div class="phone-container">
+                    <div class="phone-notch"></div>
+                    <div class="phone-status-bar">
+                        <span class="status-time" id="phone-clock">16:20</span>
+                        <div class="status-icons">
+                            <span class="status-signal">
+                                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="20" x2="2" y2="16"></line><line x1="6" y1="20" x2="6" y2="12"></line><line x1="10" y1="20" x2="10" y2="8"></line><line x1="14" y1="20" x2="14" y2="4"></line></svg>
+                            </span>
+                            <span class="status-battery">
+                                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="18" height="12" rx="2" ry="2"></rect><line x1="23" y1="11" x2="23" y2="13"></line></svg>
+                            </span>
                         </div>
                     </div>
-                    
-                    <div class="app-section">
-                        <h4 class="section-title">Categories</h4>
-                        <div id="cuisine-tags-container" class="cuisine-tags-scroll">
-                            <span class="cuisine-tag active" data-cuisine="all">🍽️ All</span>
-                            <span class="cuisine-tag" data-cuisine="Indian">🇮🇳 Indian</span>
-                            <span class="cuisine-tag" data-cuisine="Italian">🇮🇹 Italian</span>
-                            <span class="cuisine-tag" data-cuisine="Japanese">🇯🇵 Japanese</span>
-                            <span class="cuisine-tag" data-cuisine="Chinese">🇨🇳 Chinese</span>
-                            <span class="cuisine-tag" data-cuisine="American">🍔 American</span>
-                            <span class="cuisine-tag" data-cuisine="Cafe">☕ Cafe</span>
-                        </div>
-                    </div>
-
-                    <div class="app-section">
-                        <h4 class="section-title">Nearby Matches</h4>
-                        <div id="app-restaurant-list" class="app-list">
-                            <!-- Restaurant recommendations dynamically loaded here -->
-                        </div>
-                    </div>
-                    
-                    <!-- Menu and Cart -->
-                    <div id="app-menu-section" class="app-section hidden">
-                        <div class="menu-header">
-                            <h4 class="section-title" id="app-menu-restaurant-name">The Gourmet Hub</h4>
-                            <button id="close-menu-btn" class="btn-text">Back</button>
-                        </div>
-                        <div class="search-box-wrapper">
-                            <input type="text" id="menu-item-search" placeholder="Search dishes (e.g. Pizza)..." class="search-input">
-                        </div>
-                        <div id="app-menu-list" class="app-list">
-                            <!-- Menu items dynamically loaded -->
-                        </div>
-                        <div class="cart-box">
-                            <div class="cart-summary">
-                                <span>Cart Item: <strong id="cart-item-name">None</strong></span>
-                                <div class="cart-qty-ctrl">
-                                    <button id="cart-dec-btn" class="btn-qty">-</button>
-                                    <span id="cart-qty">1</span>
-                                    <button id="cart-inc-btn" class="btn-qty">+</button>
+                    <div class="phone-content">
+                        <!-- Customer Details & Order App -->
+                        <div id="customer-order-card" class="order-app-card hidden">
+                            <div class="app-user-info">
+                                <div class="user-avatar-circle">
+                                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                </div>
+                                <div>
+                                    <h3 id="app-user-name">Rahul</h3>
+                                    <span id="app-user-cuisine" class="badge-cuisine">Indian Preference</span>
                                 </div>
                             </div>
-                            <button id="place-order-btn" class="btn-primary">
-                                Place Simulated Order (&#8377;<span id="cart-total">0.00</span>)
-                            </button>
+                            
+                            <div class="app-section">
+                                <h4 class="section-title">Categories</h4>
+                                <div id="cuisine-tags-container" class="cuisine-tags-scroll">
+                                    <span class="cuisine-tag active" data-cuisine="all">
+                                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                        All
+                                    </span>
+                                    <span class="cuisine-tag" data-cuisine="Indian">
+                                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M20 12v2a8 8 0 0 1-16 0v-2M12 2v3M8 3v2M16 3v2"></path></svg>
+                                        Indian
+                                    </span>
+                                    <span class="cuisine-tag" data-cuisine="Italian">
+                                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L2 12h16L22 2zM15 6h.01M12 9h.01"></path></svg>
+                                        Italian
+                                    </span>
+                                    <span class="cuisine-tag" data-cuisine="Japanese">
+                                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>
+                                        Japanese
+                                    </span>
+                                    <span class="cuisine-tag" data-cuisine="Chinese">
+                                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M18 12a6 6 0 0 1-12 0M5 7l14-4M4 8l14-4"></path></svg>
+                                        Chinese
+                                    </span>
+                                    <span class="cuisine-tag" data-cuisine="American">
+                                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18h20M2 14h20M3 10h18a8 8 0 0 0-16 0zM5 22h14a2 2 0 0 0 2-2v-2H3v2a2 2 0 0 0 2 2z"></path></svg>
+                                        American
+                                    </span>
+                                    <span class="cuisine-tag" data-cuisine="Cafe">
+                                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3"></path></svg>
+                                        Cafe
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="app-section">
+                                <h4 class="section-title">Nearby Matches</h4>
+                                <div id="app-restaurant-list" class="app-list">
+                                    <!-- Restaurant recommendations dynamically loaded here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Menu and Cart -->
+                            <div id="app-menu-section" class="app-section hidden">
+                                <div class="menu-header">
+                                    <h4 class="section-title" id="app-menu-restaurant-name">The Gourmet Hub</h4>
+                                    <button id="close-menu-btn" class="btn-text">Back</button>
+                                </div>
+                                <div class="search-box-wrapper">
+                                    <input type="text" id="menu-item-search" placeholder="Search dishes (e.g. Pizza)..." class="search-input">
+                                </div>
+                                <div id="app-menu-list" class="app-list">
+                                    <!-- Menu items dynamically loaded -->
+                                </div>
+                                <div class="cart-box">
+                                    <div class="cart-summary">
+                                        <span>Cart Item: <strong id="cart-item-name">None</strong></span>
+                                        <div class="cart-qty-ctrl">
+                                            <button id="cart-dec-btn" class="btn-qty">-</button>
+                                            <span id="cart-qty">1</span>
+                                            <button id="cart-inc-btn" class="btn-qty">+</button>
+                                        </div>
+                                    </div>
+                                    <button id="place-order-btn" class="btn-primary">
+                                        Place Simulated Order (&#8377;<span id="cart-total">0.00</span>)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="no-customer-selected" class="empty-state">
+                            <span class="empty-icon">
+                                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            </span>
+                            <h3>Device Locked</h3>
+                            <p>Select a customer above to unlock their smartphone and simulate ordering.</p>
                         </div>
                     </div>
-                </div>
-
-                <div id="no-customer-selected" class="empty-state">
-                    <span class="empty-icon">👈</span>
-                    <p>Select a customer above to view their recommendations, browse menus, and place custom orders in the simulator.</p>
+                    <div class="phone-home-indicator"></div>
                 </div>
             </div>
         </section>
@@ -132,13 +187,56 @@
         <!-- CENTER COLUMN: Map & System Control -->
         <section class="app-column center-column" aria-label="Dispatch Grid">
             <div class="column-header">
-                <h2>🗺️ Live Location Dispatch Grid</h2>
+                <h2>
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
+                    Live Location Dispatch Grid
+                </h2>
                 <div class="map-controls">
                     <button id="add-user-trigger" class="btn-secondary btn-small">+ Add User</button>
                     <button id="reset-view-btn" class="btn-secondary btn-small">Reset Bounds</button>
                 </div>
             </div>
             <div class="column-content map-pane">
+                <!-- Operations Performance Metrics -->
+                <div class="metrics-dashboard">
+                    <div class="metric-card">
+                        <span class="metric-icon">
+                            <svg class="svg-icon orders-placed-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><polygon points="12 22.08 12 12 3 6.92 3 16.08 12 22.08"></polygon><polygon points="12 12 21 6.92 21 16.08 12 22.08"></polygon><polygon points="12 2 21 6.92 12 12 3 6.92 12 2"></polygon><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        </span>
+                        <div class="metric-info">
+                            <div class="metric-value" id="metric-orders-placed">0</div>
+                            <div class="metric-label">Orders Placed</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-icon">
+                            <svg class="svg-icon revenue-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        </span>
+                        <div class="metric-info">
+                            <div class="metric-value" id="metric-revenue">₹0.00</div>
+                            <div class="metric-label">Est. Revenue</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-icon">
+                            <svg class="svg-icon active-rider-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="3"></circle><circle cx="19" cy="18" r="3"></circle><path d="M10 18l3-7 4 4"></path><path d="M19 18H5"></path><path d="M12 6H8a2 2 0 0 0-2 2v4"></path></svg>
+                        </span>
+                        <div class="metric-info">
+                            <div class="metric-value" id="metric-riders-active">0</div>
+                            <div class="metric-label">Active Riders</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-icon">
+                            <svg class="svg-icon match-rate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                        </span>
+                        <div class="metric-info">
+                            <div class="metric-value" id="metric-match-rate">0%</div>
+                            <div class="metric-label">Match Rate</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="canvas-container">
                     <canvas id="liveMapCanvas"></canvas>
                     <div class="map-tooltip" id="mapTooltip"></div>
@@ -151,7 +249,10 @@
                 
                 <!-- Map Interaction Instructions -->
                 <div class="map-footer-hint">
-                    <p>💡 <strong>Map Actions:</strong> Click anywhere on the map grid to teleport the currently selected customer immediately. Their matches will recalculate instantly.</p>
+                    <p>
+                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <strong>Map Actions:</strong> Click anywhere on the map grid to teleport the currently selected customer immediately. Their matches will recalculate instantly.
+                    </p>
                 </div>
             </div>
         </section>
@@ -161,7 +262,10 @@
             <!-- Top Half: Order Pipelines -->
             <div class="pipeline-section">
                 <div class="column-header">
-                    <h2>📦 Live Order Pipelines</h2>
+                    <h2>
+                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                        Live Order Pipelines
+                    </h2>
                     <span class="header-badge" id="active-orders-badge">0 Active</span>
                 </div>
                 <div class="pipeline-board">
@@ -187,7 +291,10 @@
             <!-- Bottom Half: Log Terminal -->
             <div class="log-section">
                 <div class="column-header">
-                    <h2>🖥     Event Stream</h2>
+                    <h2>
+                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                        Event Stream
+                    </h2>
                     <div class="console-actions">
                         <button id="copy-logs-btn" class="btn-text">Copy</button>
                         <button id="clear-logs-btn" class="btn-text">Clear</button>
@@ -212,7 +319,9 @@
         <div class="modal-card">
             <div class="modal-header">
                 <h3>Create New User</h3>
-                <button id="close-modal-btn" class="btn-close">&times;</button>
+                <button id="close-modal-btn" class="btn-close" style="display: flex; align-items: center; justify-content: center;">
+                    <svg class="svg-icon" style="margin-right:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
             </div>
             <form id="add-user-form">
                 <div class="form-group">
