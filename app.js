@@ -29,10 +29,10 @@ let dragDistance = 0;
 let lastMouseX = 0;
 let lastMouseY = 0;
 
-// Connect to backend (if running on a different port like Live Server 5500, fallback to default 8080)
-const BACKEND_URL = (window.location.port !== '8080' && window.location.port !== '8085' && window.location.port !== '')
-    ? 'http://127.0.0.1:8080'
-    : '';
+// Connect to backend (fallback to default 8080 if not served by the backend directly)
+const BACKEND_URL = (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')
+    ? (window.location.port === '8080' || window.location.port === '8085' ? '' : 'http://127.0.0.1:8080')
+    : 'http://127.0.0.1:8080';
 
 // Canvas Coordinates Projection State
 const canvas = document.getElementById('liveMapCanvas');
