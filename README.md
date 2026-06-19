@@ -4,7 +4,9 @@ A high-performance, multi-threaded simulation mimicking real-time food delivery 
 
 ---
 
-## 🏗️ Architecture Overview
+## 📖 Project Overview
+
+**Zomato Live** is an interactive, real-time operations dashboard and match dispatch simulator. The application consists of two primary layers:
 
 ### 1. The Multi-Threaded Engine (Python Backend)
 * **Thread-Safe Global State (`GlobalState`)**: Implements strict thread-safety using Python's `threading.Lock` to coordinate real-time updates of users, restaurants, recommendations, orders, and configuration variables.
@@ -23,14 +25,78 @@ A high-performance, multi-threaded simulation mimicking real-time food delivery 
 
 ---
 
-## 🗺️ Production-Grade Microservices Architecture (Zomato-Like)
+## 🛠️ Setup Instructions
 
-For production scale, the simple multi-threaded simulation scales up to a robust, layered, event-driven microservices system:
+To get the simulation up and running on your local machine, follow these steps:
+
+1. **Clone the Repository**
+   Clone the repository and navigate to the project directory:
+   ```bash
+   git clone https://github.com/riddhi-z1465/Food_Delivery_System.git
+   cd "Food Delivery System"
+   ```
+
+2. **Verify Python Installation**
+   Ensure you have Python 3.x installed. You can check your version by running:
+   ```bash
+   python3 --version
+   ```
+
+3. **Check File Permissions (Optional)**
+   Make sure the main python script has execution permissions:
+   ```bash
+   chmod +x food_delivery.py
+   ```
+
+---
+
+## 📦 Dependencies
+
+The project is designed to be lightweight and extremely easy to run, requiring **zero external packages or libraries**.
+
+* **Backend Dependencies (Standard Library):**
+  - `threading`: For concurrent simulator execution and hosting the server.
+  - `queue`: Simulating pub-sub message ingestion.
+  - `http.server`: Serving static dashboard files and routing API request handlers.
+  - `math`: Calculation of distances via the Haversine formula.
+  - `json`, `uuid`, `logging`, `time`, `random`: Core utility modules.
+* **Frontend Dependencies:**
+  - Standard HTML5, CSS3, and JavaScript (Vanilla CSS, vanilla JS with no external frameworks or libraries).
+  - HTML5 Canvas API for geo-spatial rendering.
+
+---
+
+## 🚀 Execution Steps
+
+1. **Start the Simulator**
+   Run the following command in your terminal from the project root directory:
+   ```bash
+   python3 food_delivery.py
+   ```
+   *Note: The script automatically checks for and terminates any stale process occupying the target port (default 8080).*
+
+2. **Open the Dashboard**
+   Launch your web browser and navigate to:
+   ```
+   http://127.0.0.1:8080/
+   ```
+
+3. **Interact with the Simulation**
+   * **Visual Teleportation**: Click anywhere on the map grid to relocate the selected customer. The nearest restaurant recommendations will update instantly.
+   * **Interactive Toggles**: Tweak `🤖 Auto-Move` (users wander around Mumbai) and `🍕 Auto-Orders` (automated customer orders) via dashboard control pills.
+   * **Simulate Custom Orders**: Browse cuisine-specific menus (Indian, Italian, Japanese, etc.), increment item quantities, and place custom orders directly from the UI.
+   * **Monitor System Logs**: View structural logs like `USER_MOVE`, `RECOMMENDATION_MATCHED`, `NEW_ORDER`, and `ORDER_STATUS_UPDATE` as they stream live on the Operations terminal.
+
+---
+
+## 🔍 Additional Project Details
+
+### 1. Production-Grade Microservices Architecture (Zomato-Like)
+At production scale, the simple multi-threaded simulation scales up to a robust, layered, event-driven microservices system:
 
 ![Production-Scale Architecture](system_architechture.png)
 
-### Architectural Breakdown
-
+#### Architectural Breakdown
 1. **Client Layer**: The client application (Mobile/Web) sends API calls and telemetry updates.
 2. **API Gateway Layer**: Manages security, authentication, and balances/routes requests to target microservices.
 3. **Microservices Layer**: Distributed autonomous microservices handling specialized scopes:
@@ -48,90 +114,55 @@ For production scale, the simple multi-threaded simulation scales up to a robust
 8. **Media Storage**: Uses cloud object storage (e.g., AWS S3) cached close to the user via a Content Delivery Network (CDN) for fast image rendering.
 9. **External Services**: Interfaces with third-party networks for processing payments, rendering map interfaces, and pushing app notifications.
 
----
-
-## ⚡ Key Features
-
-* **Visual Teleportation**: Click anywhere on the map to relocate the selected customer. The nearest restaurant recommendations are updated instantly.
-* **Interactive Toggles**: Tweak `🤖 Auto-Move` (users wander around Mumbai) and `🍕 Auto-Orders` (automated customer orders) via dashboard control pills.
-* **Broker Event Stream**: View structural logs like `USER_MOVE`, `RECOMMENDATION_MATCHED`, `NEW_ORDER`, and `ORDER_STATUS_UPDATE` as they happen.
-* **Simulate Custom Orders**: Browse cuisine-specific menus (Indian, Italian, Japanese, etc.), increment item quantities, and place custom orders directly from the UI.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-* **Python 3.x**
-* No external dependencies required (built entirely using Python standard libraries).
-
-### Running the Simulator
-1. Clone the repository and navigate to the directory:
-   ```bash
-   git clone https://github.com/riddhi-z1465/Food_Delivery_System.git
-   cd Food_Delivery_System
-   ```
-2. Start the simulation:
-   ```bash
-   python3 simulation.py
-   ```
-3. Open your browser and navigate to:
-   ```
-   http://127.0.0.1:8080/
-   ```
-
----
-
-## 🔌 API Reference
-
+### 2. API Reference
 The backend exposes a JSON REST API for querying and controlling the simulator:
 
-### 1. Get Simulation Snapshot
-* **Endpoint:** `GET /data`
-* **Response:** Returns the complete system state snapshot (users, restaurants, orders, recommendations, event streams, and configs).
+* **Get Simulation Snapshot**
+  * **Endpoint:** `GET /data`
+  * **Response:** Returns the complete system state snapshot (users, restaurants, orders, recommendations, event streams, and configs).
 
-### 2. Place Custom Order
-* **Endpoint:** `POST /api/orders`
-* **Body:**
-  ```json
-  {
-    "user_id": "USER-1",
-    "restaurant_id": "REST-001",
-    "item_name": "Paneer Butter Masala",
-    "quantity": 2,
-    "total_amount": 560.00
-  }
-  ```
+* **Place Custom Order**
+  * **Endpoint:** `POST /api/orders`
+  * **Body:**
+    ```json
+    {
+      "user_id": "USER-1",
+      "restaurant_id": "REST-001",
+      "item_name": "Paneer Butter Masala",
+      "quantity": 2,
+      "total_amount": 560.00
+    }
+    ```
 
-### 3. Update User Location
-* **Endpoint:** `POST /api/users/location`
-* **Body:**
-  ```json
-  {
-    "user_id": "USER-1",
-    "lat": 19.0772,
-    "lon": 72.8762
-  }
-  ```
+* **Update User Location**
+  * **Endpoint:** `POST /api/users/location`
+  * **Body:**
+    ```json
+    {
+      "user_id": "USER-1",
+      "lat": 19.0772,
+      "lon": 72.8762
+    }
+    ```
 
-### 4. Create Dynamic User
-* **Endpoint:** `POST /api/users/add`
-* **Body:**
-  ```json
-  {
-    "name": "Rohan",
-    "preference_cuisine": "Italian",
-    "lat": 19.0760,
-    "lon": 72.8777
-  }
-  ```
+* **Create Dynamic User**
+  * **Endpoint:** `POST /api/users/add`
+  * **Body:**
+    ```json
+    {
+      "name": "Rohan",
+      "preference_cuisine": "Italian",
+      "lat": 19.0760,
+      "lon": 72.8777
+    }
+    ```
 
-### 5. Update Simulation Config
-* **Endpoint:** `POST /api/config`
-* **Body:**
-  ```json
-  {
-    "auto_move_enabled": true,
-    "auto_orders_enabled": false
-  }
-  ```
+* **Update Simulation Config**
+  * **Endpoint:** `POST /api/config`
+  * **Body:**
+    ```json
+    {
+      "auto_move_enabled": true,
+      "auto_orders_enabled": false
+    }
+    ```
